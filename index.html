@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>尖峰吐氣流量測量計 — 理想值計算</title>
+<style>
+:root{
+  --ink:#16211F;
+  --ink-2:#4A5A56;
+  --teal-900:#0B3A36;
+  --teal-700:#115E56;
+  --teal-400:#3FA192;
+  --paper:#EFF3F1;
+  --card:#FFFFFF;
+  --line:#D9E2DE;
+  --g-bg:#E7F0DA; --g-bar:#5C9A2E; --g-ink:#1F4407;
+  --y-bg:#FBEEDB; --y-bar:#D9911C; --y-ink:#6B3F06;
+  --r-bg:#FAE7E5; --r-bar:#C3403A; --r-ink:#5E1512;
+}
+*{box-sizing:border-box;}
+html{-webkit-text-size-adjust:100%;}
+body{
+  margin:0;
+  background:#EFF3F1;
+  color:#16211F;
+  font-family:"Noto Sans TC","PingFang TC","Heiti TC","Microsoft JhengHei",system-ui,sans-serif;
+  font-size:16px;
+  line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:640px;margin:0 auto;padding:0 0 40px;}
+
+.masthead{background:#0B3A36;color:#fff;padding:28px 22px 22px;}
+.eyebrow{font-size:13px;letter-spacing:.18em;color:#8FC9BE;margin:0 0 6px;}
+.masthead h1{font-size:38px;font-weight:800;letter-spacing:.02em;margin:0;line-height:1.15;}
+.latin{font-size:15px;letter-spacing:.42em;color:#8FC9BE;margin:6px 0 0;}
+.ticks{height:14px;margin-top:16px;color:#3FA192;
+  background-image:repeating-linear-gradient(90deg,currentColor 0 1.5px,transparent 1.5px 13px);
+  background-position:0 100%;background-size:100% 9px;background-repeat:repeat-x;
+  border-bottom:1.5px solid currentColor;}
+
+.jswarn{margin:16px 16px 0;padding:14px 16px;background:#FAE7E5;border:1px solid #C3403A;
+  border-radius:12px;color:#5E1512;font-size:14px;line-height:1.7;}
+.jswarn strong{font-weight:700;}
+
+.card{background:#fff;border:1px solid #D9E2DE;border-radius:14px;padding:20px;margin:18px 16px 0;}
+.field-label{font-size:13px;font-weight:500;color:#4A5A56;letter-spacing:.04em;margin:0 0 8px;}
+.seg{display:flex;gap:8px;margin:0 0 18px;}
+.seg button{
+  flex:1;-webkit-appearance:none;appearance:none;cursor:pointer;font:inherit;font-size:16px;
+  padding:11px 8px;border-radius:9px;border:1px solid #D9E2DE;
+  background:#fff;color:#4A5A56;
+}
+.seg button.on{background:#115E56;border-color:#115E56;color:#fff;font-weight:500;}
+.seg button:focus{outline:2px solid #3FA192;outline-offset:2px;}
+
+.grid{display:flex;flex-wrap:wrap;gap:14px;}
+.grid > div{flex:1 1 140px;}
+.grid label{display:block;font-size:13px;font-weight:500;color:#4A5A56;margin:0 0 6px;}
+input[type=number],input[type=tel]{
+  width:100%;font:inherit;font-size:17px;padding:10px 12px;
+  border:1px solid #D9E2DE;border-radius:9px;background:#fff;color:#16211F;
+}
+input:focus{outline:2px solid #3FA192;outline-offset:-1px;border-color:#3FA192;}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+.hint{font-size:12.5px;color:#7A8A86;margin:6px 0 0;}
+.err{font-size:13.5px;color:#C3403A;margin:12px 0 0;}
+
+.calcbtn{-webkit-appearance:none;appearance:none;cursor:pointer;font:inherit;font-size:16px;font-weight:500;
+  width:100%;margin-top:16px;padding:13px;border-radius:9px;border:0;background:#115E56;color:#fff;}
+
+.readout{border-top:1px solid #D9E2DE;margin-top:20px;padding-top:18px;}
+.value{font-size:46px;font-weight:800;line-height:1.05;color:#0B3A36;}
+.unit{font-size:15px;font-weight:400;color:#4A5A56;margin-left:6px;}
+.formula{font-size:12.5px;color:#7A8A86;margin-top:6px;}
+
+.zones{margin:16px 16px 0;}
+.zone{display:flex;border-radius:12px;overflow:hidden;margin-top:10px;}
+.tab{width:40px;flex:none;display:flex;align-items:center;justify-content:center;
+  -webkit-writing-mode:vertical-rl;writing-mode:vertical-rl;-webkit-transform:rotate(180deg);transform:rotate(180deg);
+  font-size:13px;font-weight:500;letter-spacing:.06em;color:#fff;}
+.body{flex:1;padding:14px 16px;border-left:4px solid;}
+.zone-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.zone-name{font-size:17px;font-weight:700;letter-spacing:.03em;}
+.pill{font-size:12px;font-weight:500;color:#fff;padding:2px 9px;border-radius:20px;letter-spacing:.06em;}
+.pct{font-size:12.5px;margin-left:auto;}
+.zone-value{font-size:27px;font-weight:700;margin-top:4px;}
+.zone-desc{font-size:13.5px;line-height:1.6;margin-top:2px;}
+.z-g .tab,.z-g .pill{background:#5C9A2E;} .z-g .body{background:#E7F0DA;border-left-color:#5C9A2E;color:#1F4407;}
+.z-y .tab,.z-y .pill{background:#D9911C;} .z-y .body{background:#FBEEDB;border-left-color:#D9911C;color:#6B3F06;}
+.z-r .tab,.z-r .pill{background:#C3403A;} .z-r .body{background:#FAE7E5;border-left-color:#C3403A;color:#5E1512;}
+.zone.dim{opacity:.42;}
+.zone.hit{box-shadow:0 0 0 3px #0B3A36;}
+.hitmark{display:none;font-size:12px;font-weight:500;color:#fff;background:#0B3A36;padding:2px 9px;border-radius:20px;}
+.zone.hit .hitmark{display:inline-block;}
+
+.note{margin:20px 16px 0;padding:16px 18px;background:#0B3A36;color:#CFE6E1;border-radius:12px;font-size:13.5px;line-height:1.75;}
+.note strong{color:#fff;font-weight:500;}
+.note ul{margin:8px 0 0;padding-left:18px;}
+.note li{margin:3px 0;}
+.credit{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;margin:14px 16px 0;font-size:12px;color:#7A8A86;}
+.actions{margin:18px 16px 0;}
+.actions button{-webkit-appearance:none;appearance:none;cursor:pointer;font:inherit;font-size:15px;padding:11px 20px;
+  border-radius:9px;border:1px solid #115E56;background:#fff;color:#115E56;}
+
+.diary{display:none;}
+.diary table{width:100%;border-collapse:collapse;font-size:12px;}
+.diary th,.diary td{border:1px solid #B9C6C2;padding:7px 4px;text-align:center;}
+.diary th{font-weight:500;background:#EFF3F1;}
+
+@media print{
+  @page{size:A4;margin:12mm;}
+  body{background:#fff;font-size:11.5pt;}
+  .wrap{max-width:none;padding:0;}
+  .masthead{background:#fff;color:#0B3A36;padding:0 0 8px;border-bottom:2px solid #0B3A36;}
+  .masthead h1{font-size:26pt;}
+  .eyebrow,.latin{color:#115E56;}
+  .ticks,.actions,.calcbtn,.jswarn{display:none;}
+  .card,.zones,.note,.credit{margin-left:0;margin-right:0;}
+  .seg button{display:none;}
+  .seg button.on{display:block;border-color:#999;background:#fff;color:#000;}
+  .note{background:#fff;color:#333;border:1px solid #999;}
+  .note strong{color:#000;}
+  .zone.dim{opacity:1;}
+  .diary{display:block;margin-top:14px;page-break-inside:avoid;}
+  .diary h2{font-size:13pt;font-weight:500;margin:0 0 6px;}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow">氣喘自我監測衛教</p>
+  <h1>尖峰吐氣流量</h1>
+  <p class="latin">PEAK FLOW</p>
+  <div class="ticks"></div>
+</header>
+
+<div class="jswarn" id="jswarn">
+  <strong>目前的開啟方式無法自動計算。</strong><br />
+  這段紅字會在計算功能正常時自動消失。若你看得到它，代表這個 App 沒有執行網頁腳本 —
+  請把檔案存到手機後，改用 Safari 或 Chrome 開啟（不要用 LINE、Gmail 或檔案 App 的預覽畫面）。
+</div>
+
+<section class="card">
+  <p class="field-label">對象</p>
+  <div class="seg" id="grp-mode">
+    <button type="button" id="m-adult" class="on">成人</button>
+    <button type="button" id="m-child">兒童 6–12 歲</button>
+  </div>
+
+  <p class="field-label">性別</p>
+  <div class="seg" id="grp-sex">
+    <button type="button" id="s-m" class="on">男</button>
+    <button type="button" id="s-f">女</button>
+  </div>
+
+  <div class="grid">
+    <div><label for="h">身高（公分）</label><input id="h" type="number" pattern="[0-9]*" inputmode="decimal" placeholder="170" /></div>
+    <div><label for="a">年齡（足歲）</label><input id="a" type="number" pattern="[0-9]*" inputmode="decimal" placeholder="40" /></div>
+    <div id="wrap-w" style="display:none"><label for="w">體重（公斤）</label><input id="w" type="number" pattern="[0-9]*" inputmode="decimal" placeholder="30" /></div>
+  </div>
+
+  <button type="button" class="calcbtn" id="btn-calc">計算</button>
+  <p class="err" id="err"></p>
+
+  <div class="readout">
+    <p class="field-label">理想值 predicted PEF</p>
+    <div><span class="value" id="pef">—</span><span class="unit">L/min</span></div>
+    <p class="formula" id="formula">請先輸入身高與年齡</p>
+  </div>
+
+  <div class="readout">
+    <label class="field-label" for="today">今日測量值（選填）</label>
+    <input id="today" type="number" pattern="[0-9]*" inputmode="decimal" placeholder="輸入實測 L/min，自動判讀燈區" />
+    <p class="hint">連續吹三次，取最佳值填入。</p>
+  </div>
+</section>
+
+<section class="zones">
+  <div class="zone z-g" id="zone-g">
+    <div class="tab">80–100%</div>
+    <div class="body">
+      <div class="zone-head"><span class="zone-name">綠燈區</span><span class="pill">良好</span><span class="hitmark">今日落點</span><span class="pct">理想值 80% 以上</span></div>
+      <div class="zone-value" id="z-g">—</div>
+      <p class="zone-desc">狀況良好，維持目前的氣喘控制計畫。</p>
+    </div>
+  </div>
+  <div class="zone z-y" id="zone-y">
+    <div class="tab">60–80%</div>
+    <div class="body">
+      <div class="zone-head"><span class="zone-name">黃燈區</span><span class="pill">警告</span><span class="hitmark">今日落點</span><span class="pct">理想值 60–80%</span></div>
+      <div class="zone-value" id="z-y">—</div>
+      <p class="zone-desc">氣喘正在惡化，可能有咳嗽、喘鳴、呼吸短促或胸悶，請依醫師指示調整用藥。</p>
+    </div>
+  </div>
+  <div class="zone z-r" id="zone-r">
+    <div class="tab">0–60%</div>
+    <div class="body">
+      <div class="zone-head"><span class="zone-name">紅燈區</span><span class="pill">危險</span><span class="hitmark">今日落點</span><span class="pct">理想值 60% 以下</span></div>
+      <div class="zone-value" id="z-r">—</div>
+      <p class="zone-desc">氣喘嚴重惡化，可能呼吸非常短促、胸頸部緊繃、走路困難或說話吃力，請立即就醫。</p>
+    </div>
+  </div>
+</section>
+
+<section class="note">
+  <strong>測量與使用方式</strong>
+  <ul>
+    <li>每日固定時間測量，連續吹三次取最佳值，記錄於氣喘日記，回診時提供醫師參考。</li>
+    <li>若醫師已為你訂出個人最佳值（personal best），請以個人最佳值取代此處的理想值來劃分燈區。</li>
+    <li>本頁公式為國人成人與 6–12 歲兒童的預估值，僅供衛教參考，不能取代醫師診斷。</li>
+  </ul>
+</section>
+
+<section class="diary">
+  <h2>氣喘日記（連續七日紀錄）</h2>
+  <table>
+    <thead><tr><th style="width:22%">日期</th><th>第一次</th><th>第二次</th><th>第三次</th><th>最佳值</th><th>燈區</th><th style="width:24%">症狀／用藥</th></tr></thead>
+    <tbody>
+      <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<div class="actions"><button type="button" id="btn-print">列印本頁（含紀錄表）</button></div>
+
+<p class="credit"><span>成人 50–800 L/min ・ 兒童 0–300 L/min</span><span>臺中榮總胸腔部　呼吸治療科</span></p>
+
+</div>
+
+<script type="text/javascript">
+var mode = "adult";
+var sex = "m";
+
+function g(id){ return document.getElementById(id); }
+
+function num(id){
+  var s = g(id).value;
+  if (s === null) return NaN;
+  s = String(s).replace(/[^0-9.\-]/g, "");
+  if (s === "") return NaN;
+  return parseFloat(s);
+}
+
+function setOn(onId, offId){
+  g(onId).className = "seg-on on";
+  g(offId).className = "";
+}
+
+function mark(zone){
+  var keys = ["g", "y", "r"];
+  for (var i = 0; i < keys.length; i++){
+    var el = g("zone-" + keys[i]);
+    var cls = "zone z-" + keys[i];
+    if (zone !== null){
+      cls += (zone === keys[i]) ? " hit" : " dim";
+    }
+    el.className = cls;
+  }
+}
+
+function blank(msg){
+  g("pef").innerHTML = "—";
+  g("formula").innerHTML = msg;
+  g("z-g").innerHTML = "—";
+  g("z-y").innerHTML = "—";
+  g("z-r").innerHTML = "—";
+  mark(null);
+}
+
+function calc(){
+  var h = num("h");
+  var a = num("a");
+  var w = num("w");
+  var needW = (mode === "child");
+  var anyTyped = (g("h").value !== "" || g("a").value !== "");
+
+  var ok = !isNaN(h) && h > 0 && !isNaN(a) && a >= 0;
+  if (needW && (isNaN(w) || w <= 0)) ok = false;
+
+  if (!ok){
+    g("err").innerHTML = anyTyped ? ("請完整填寫身高、年齡" + (needW ? "、體重" : "")) : "";
+    blank("請先輸入身高與年齡" + (needW ? "、體重" : ""));
+    return;
+  }
+  g("err").innerHTML = "";
+
+  var v, f;
+  if (mode === "adult"){
+    if (sex === "m"){ v = 3.89 * h - 2.95 * a + 43.59;  f = "3.89×" + h + " − 2.95×" + a + " + 43.59"; }
+    else            { v = 4.10 * h - 1.61 * a - 173.55; f = "4.10×" + h + " − 1.61×" + a + " − 173.55"; }
+  } else {
+    if (sex === "m"){ v = 9.35 * a + 2.03 * h + 0.81 * w - 130.5; f = "9.35×" + a + " + 2.03×" + h + " + 0.81×" + w + " − 130.5"; }
+    else            { v = 7.37 * a + 1.68 * h + 1.28 * w - 98.87; f = "7.37×" + a + " + 1.68×" + h + " + 1.28×" + w + " − 98.87"; }
+  }
+  if (v < 0) v = 0;
+
+  var lo = Math.round(v * 0.6);
+  var hi = Math.round(v * 0.8);
+
+  g("pef").innerHTML = Math.round(v);
+  g("formula").innerHTML = f;
+  g("z-g").innerHTML = "≥ " + hi + " L/min";
+  g("z-y").innerHTML = lo + " – " + hi + " L/min";
+  g("z-r").innerHTML = "< " + lo + " L/min";
+
+  var t = num("today");
+  if (isNaN(t) || t <= 0){ mark(null); return; }
+  mark(t >= hi ? "g" : (t >= lo ? "y" : "r"));
+}
+
+function watch(id){
+  var el = g(id);
+  el.onkeyup = calc;
+  el.onchange = calc;
+  el.oninput = calc;
+  el.onblur = calc;
+}
+
+g("m-adult").onclick = function(){ mode = "adult"; setOn("m-adult", "m-child"); g("wrap-w").style.display = "none"; calc(); };
+g("m-child").onclick = function(){ mode = "child"; setOn("m-child", "m-adult"); g("wrap-w").style.display = "block"; calc(); };
+g("s-m").onclick = function(){ sex = "m"; setOn("s-m", "s-f"); calc(); };
+g("s-f").onclick = function(){ sex = "f"; setOn("s-f", "s-m"); calc(); };
+g("btn-calc").onclick = calc;
+g("btn-print").onclick = function(){ window.print(); };
+
+watch("h"); watch("a"); watch("w"); watch("today");
+
+g("jswarn").style.display = "none";
+calc();
+</script>
+</body>
+</html>
